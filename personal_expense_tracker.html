@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personal Expense Tracker</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
+    body { background-color: #f3f4f6; color: #1f2937; display: flex; justify-content: center; padding: 32px 16px; min-height: 100vh; transition: background-color 0.25s, color 0.25s; }
+    .app-card { background: #ffffff; width: 100%; max-width: 500px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); padding: 24px; height: fit-content; transition: background-color 0.25s, box-shadow 0.25s; }
+
+    /* Header & Theme Toggle */
+    .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    h1 { font-size: 1.5rem; font-weight: 700; color: #111827; margin: 0; }
+    .theme-toggle-btn { background: none; border: 1px solid #d1d5db; border-radius: 20px; padding: 6px 12px; font-size: 0.82rem; font-weight: 600; color: #4b5563; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
+    .theme-toggle-btn:hover { background-color: #f3f4f6; border-color: #9ca3af; }
+
+    /* Total Spending Banner */
+    .total-banner { background: linear-gradient(135deg, #1e40af, #3b82f6); color: #ffffff; padding: 16px 20px; border-radius: 10px; margin-bottom: 14px; text-align: center; }
+    .total-label { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.9; margin-bottom: 4px; }
+    .total-amount { font-size: 1.75rem; font-weight: 700; }
+
+    /* Monthly Budget Goal & Alert */
+    .budget-card { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px 16px; margin-bottom: 16px; transition: background-color 0.25s, border-color 0.25s; }
+    .budget-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .budget-title { font-size: 0.88rem; font-weight: 600; color: #374151; }
+    .budget-goal-action { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: #6b7280; }
+    .budget-edit-btn { background: none; border: none; color: #2563eb; font-size: 0.78rem; font-weight: 600; cursor: pointer; text-decoration: underline; padding: 0; }
+    .budget-progress-track { height: 10px; width: 100%; background-color: #e5e7eb; border-radius: 5px; overflow: hidden; margin-bottom: 8px; }
+    .budget-progress-bar { height: 100%; width: 0%; background-color: #10b981; border-radius: 5px; transition: width 0.3s ease, background-color 0.3s ease; }
+    .budget-footer { display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; color: #6b7280; }
+    .budget-status-tag { font-weight: 600; padding: 2px 8px; border-radius: 10px; }
+    .budget-status-safe { background: #d1fae5; color: #065f46; }
+    .budget-status-warning { background: #fef3c7; color: #92400e; }
+    .budget-status-danger { background: #fee2e2; color: #991b1b; }
+
+    /* Quick Toolbar */
+    .toolbar { display: flex; gap: 10px; margin-bottom: 16px; }
+    .tool-btn { flex: 1; padding: 9px 12px; font-size: 0.85rem; font-weight: 600; border-radius: 6px; border: 1px solid #d1d5db; background: #ffffff; color: #374151; cursor: pointer; transition: all 0.2s; text-align: center; }
+    .tool-btn:hover { background: #f9fafb; border-color: #9ca3af; }
+    .tool-btn-primary { color: #1d4ed8; border-color: #bfdbfe; background-color: #eff6ff; }
+    .tool-btn-primary:hover { background-color: #dbeafe; border-color: #3b82f6; }
+    .tool-btn-danger { color: #dc2626; border-color: #fecaca; }
+    .tool-btn-danger:hover { background: #fef2f2; border-color: #dc2626; }
+
+    /* Category Breakdown */
+    .breakdown-card { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px 16px; margin-bottom: 20px; transition: background-color 0.25s, border-color 0.25s; }
+    .breakdown-title { font-size: 0.9rem; font-weight: 600; color: #374151; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+    .breakdown-bar { height: 12px; width: 100%; background: #e5e7eb; border-radius: 6px; overflow: hidden; display: flex; margin-bottom: 12px; }
+    .breakdown-segment { height: 100%; transition: width 0.3s ease; }
+    .breakdown-legend { display: flex; flex-wrap: wrap; gap: 10px 14px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: #4b5563; }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .legend-pct { font-weight: 600; color: #111827; }
+
+    .form-group { margin-bottom: 14px; }
+    label { display: block; font-size: 0.85rem; font-weight: 600; color: #4b5563; margin-bottom: 4px; }
+    input, select { width: 100%; padding: 10px 12px; font-size: 0.95rem; border: 1px solid #d1d5db; border-radius: 8px; outline: none; transition: border-color 0.2s, background-color 0.2s, color 0.2s; background-color: #ffffff; color: #1f2937; }
+    input:focus, select:focus { border-color: #2563eb; }
+    .btn { width: 100%; padding: 12px; background: #2563eb; color: #ffffff; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; margin-top: 6px; transition: background-color 0.2s; }
+    .btn:hover { background-color: #1d4ed8; }
+    .btn-secondary { background-color: #e5e7eb; color: #374151; }
+    .btn-secondary:hover { background-color: #d1d5db; }
+    .btn-danger { background-color: #dc2626; color: #ffffff; }
+    .btn-danger:hover { background-color: #b91c1c; }
+
+    /* Header & Filter Controls */
+    .list-header { display: flex; justify-content: space-between; align-items: center; margin: 28px 0 10px 0; flex-wrap: wrap; gap: 8px; }
+    .section-title { font-size: 1.1rem; font-weight: 600; color: #374151; margin: 0; }
+    .filter-controls { display: flex; gap: 6px; flex-wrap: wrap; }
+    .filter-select { width: auto; padding: 6px 10px; font-size: 0.82rem; border-radius: 6px; color: #4b5563; }
+    .custom-range-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
+    .custom-range-row.hidden { display: none; }
+    .custom-range-row input { padding: 6px 8px; font-size: 0.82rem; }
+    .custom-range-label { font-size: 0.78rem; color: #6b7280; white-space: nowrap; }
+    .search-input { margin-bottom: 12px; padding: 8px 12px; font-size: 0.88rem; }
+
+    .expense-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .expense-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; transition: background-color 0.25s, border-color 0.25s; }
+    .expense-info { display: flex; flex-direction: column; gap: 3px; }
+    .expense-name { font-weight: 600; font-size: 0.95rem; color: #111827; }
+    .expense-meta { display: flex; align-items: center; gap: 8px; }
+    .expense-category { font-size: 0.75rem; color: #4b5563; background-color: #e5e7eb; padding: 2px 8px; border-radius: 12px; width: fit-content; }
+    .expense-date { font-size: 0.75rem; color: #6b7280; }
+    .expense-right { display: flex; align-items: center; gap: 10px; }
+    .expense-amount { font-weight: 700; font-size: 1rem; color: #059669; }
+    .expense-actions { display: flex; gap: 6px; }
+    .edit-btn { background: none; border: 1px solid #93c5fd; color: #2563eb; border-radius: 6px; padding: 4px 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .edit-btn:hover { background-color: #eff6ff; border-color: #2563eb; }
+    .delete-btn { background: none; border: 1px solid #fca5a5; color: #ef4444; border-radius: 6px; padding: 4px 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .delete-btn:hover { background-color: #fee2e2; border-color: #ef4444; }
+    .empty-state { text-align: center; color: #9ca3af; padding: 24px 0; font-size: 0.9rem; }
+
+    /* Modals */
+    .modal-overlay { position: fixed; inset: 0; background-color: rgba(0, 0, 0, 0.45); display: flex; justify-content: center; align-items: center; padding: 16px; z-index: 50; }
+    .modal-overlay.hidden { display: none; }
+    .modal-card { background: #ffffff; width: 100%; max-width: 420px; border-radius: 12px; padding: 24px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15); transition: background-color 0.25s, color 0.25s; }
+    .modal-card h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 14px; color: #111827; }
+    .modal-card p { color: #4b5563; font-size: 0.95rem; line-height: 1.4; margin-bottom: 20px; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+    .modal-actions .btn { margin-top: 0; }
+
+    /* Dark Mode Theme */
+    body.dark-mode { background-color: #0f172a; color: #f1f5f9; }
+    body.dark-mode .app-card { background: #1e293b; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5); }
+    body.dark-mode h1, body.dark-mode .section-title, body.dark-mode .budget-title, body.dark-mode .breakdown-title, body.dark-mode .modal-card h2, body.dark-mode .legend-pct { color: #f8fafc; }
+    body.dark-mode label, body.dark-mode .custom-range-label, body.dark-mode .budget-footer { color: #94a3b8; }
+    body.dark-mode input, body.dark-mode select { background-color: #334155; color: #f8fafc; border-color: #475569; }
+    body.dark-mode input:focus, body.dark-mode select:focus { border-color: #60a5fa; }
+    body.dark-mode .theme-toggle-btn { border-color: #475569; color: #cbd5e1; }
+    body.dark-mode .theme-toggle-btn:hover { background-color: #334155; }
+    body.dark-mode .budget-card, body.dark-mode .breakdown-card { background-color: #243046; border-color: #334155; }
+    body.dark-mode .budget-progress-track, body.dark-mode .breakdown-bar { background-color: #334155; }
+    body.dark-mode .tool-btn { background-color: #334155; color: #f8fafc; border-color: #475569; }
+    body.dark-mode .tool-btn:hover { background-color: #475569; }
+    body.dark-mode .tool-btn-primary { background-color: #1e3a8a; color: #bfdbfe; border-color: #3b82f6; }
+    body.dark-mode .tool-btn-primary:hover { background-color: #1d4ed8; }
+    body.dark-mode .expense-item { background-color: #243046; border-color: #334155; }
+    body.dark-mode .expense-name { color: #f8fafc; }
+    body.dark-mode .expense-category { background-color: #334155; color: #cbd5e1; }
+    body.dark-mode .expense-date { color: #94a3b8; }
+    body.dark-mode .modal-card { background-color: #1e293b; }
+    body.dark-mode .btn-secondary { background-color: #334155; color: #f8fafc; }
+    body.dark-mode .btn-secondary:hover { background-color: #475569; }
+  </style>
+</head>
+<body>
+
+  <div class="app-card">
+    <!-- Header with Dark/Light Switcher -->
+    <div class="header-row">
+      <h1>Expense Tracker</h1>
+      <button type="button" id="theme-toggle-btn" class="theme-toggle-btn">
+        <span id="theme-icon">🌙</span>
+        <span id="theme-text">Dark</span>
+      </button>
+    </div>
+
+    <!-- Total Spending Banner -->
+    <div class="total-banner">
+      <div id="total-label" class="total-label">Total Spending</div>
+      <div id="total-display" class="total-amount">₹0.00</div>
+    </div>
+
+    <!-- Monthly Budget Goal & Alert -->
+    <div class="budget-card">
+      <div class="budget-header">
+        <div class="budget-title">Monthly Budget Goal</div>
+        <div class="budget-goal-action">
+          <span id="budget-goal-display">₹20,000</span>
+          <button type="button" id="edit-budget-btn" class="budget-edit-btn">Edit</button>
+        </div>
+      </div>
+      <div class="budget-progress-track">
+        <div id="budget-progress-bar" class="budget-progress-bar"></div>
+      </div>
+      <div class="budget-footer">
+        <span id="budget-spent-info">₹0 spent this month</span>
+        <span id="budget-status-tag" class="budget-status-tag budget-status-safe">On Track</span>
+      </div>
+    </div>
+
+    <!-- Quick Tools: Export Excel & Clear All -->
+    <div class="toolbar">
+      <button type="button" id="export-excel-btn" class="tool-btn tool-btn-primary">Export to Excel (.xls)</button>
+      <button type="button" id="clear-btn" class="tool-btn tool-btn-danger">Clear All</button>
+    </div>
+
+    <!-- Category Spending Breakdown -->
+    <div class="breakdown-card">
+      <div class="breakdown-title">
+        <span>Category Breakdown</span>
+        <span id="breakdown-item-count" style="font-size: 0.78rem; color: #6b7280; font-weight: normal;"></span>
+      </div>
+      <div id="breakdown-bar" class="breakdown-bar"></div>
+      <div id="breakdown-legend" class="breakdown-legend"></div>
+    </div>
+
+    <!-- Input Form -->
+    <form id="expense-form">
+      <div class="form-group">
+        <label for="desc-input">Expense Description</label>
+        <input type="text" id="desc-input" placeholder="e.g. Morning Coffee" required>
+      </div>
+
+      <div class="form-group">
+        <label for="amount-input">Amount</label>
+        <input type="number" id="amount-input" step="0.01" min="0.01" placeholder="0.00" required>
+      </div>
+
+      <div class="form-group">
+        <label for="currency-select">Currency</label>
+        <select id="currency-select">
+          <option value="USD">USD ($)</option>
+          <option value="INR" selected>INR (₹)</option>
+          <option value="EUR">EUR (€)</option>
+          <option value="GBP">GBP (£)</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="date-input">Date</label>
+        <input type="date" id="date-input" required>
+      </div>
+
+      <div class="form-group">
+        <label for="category-select">Category</label>
+        <select id="category-select">
+          <option value="Food & Dining">Food & Dining</option>
+          <option value="Transportation">Transportation</option>
+          <option value="Groceries">Groceries</option>
+          <option value="Utilities & Bills">Utilities & Bills</option>
+          <option value="Entertainment">Entertainment</option>
+          <option value="Investment">Investment</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <button type="submit" class="btn">Add Expense</button>
+    </form>
+
+    <!-- Expenses List Header with Filter Controls -->
+    <div class="list-header">
+      <h2 class="section-title">Recent Expenses</h2>
+      <div class="filter-controls">
+        <select id="period-filter" class="filter-select">
+          <option value="all">All Time</option>
+          <option value="this-month">This Month</option>
+          <option value="this-week">This Week</option>
+          <option value="custom">Custom Range</option>
+        </select>
+
+        <select id="filter-select" class="filter-select">
+          <option value="All">All Categories</option>
+          <option value="Food & Dining">Food & Dining</option>
+          <option value="Transportation">Transportation</option>
+          <option value="Groceries">Groceries</option>
+          <option value="Utilities & Bills">Utilities & Bills</option>
+          <option value="Entertainment">Entertainment</option>
+          <option value="Investment">Investment</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Custom Range Inputs -->
+    <div id="custom-range-row" class="custom-range-row hidden">
+      <span class="custom-range-label">From:</span>
+      <input type="date" id="range-from-input">
+      <span class="custom-range-label">To:</span>
+      <input type="date" id="range-to-input">
+    </div>
+
+    <!-- Search Input -->
+    <input
+      type="text"
+      id="search-input"
+      class="search-input"
+      placeholder="Search by description, amount, category, currency, or date..."
+    >
+
+    <ul id="expense-list" class="expense-list"></ul>
+  </div>
+
+  <!-- In-page Edit Modal -->
+  <div id="edit-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <h2>Edit Expense</h2>
+      <form id="edit-form">
+        <input type="hidden" id="edit-id">
+
+        <div class="form-group">
+          <label for="edit-desc">Expense Description</label>
+          <input type="text" id="edit-desc" required>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-amount">Amount</label>
+          <input type="number" id="edit-amount" step="0.01" min="0.01" required>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-currency">Currency</label>
+          <select id="edit-currency">
+            <option value="USD">USD ($)</option>
+            <option value="INR">INR (₹)</option>
+            <option value="EUR">EUR (€)</option>
+            <option value="GBP">GBP (£)</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-category">Category</label>
+          <select id="edit-category">
+            <option value="Food & Dining">Food & Dining</option>
+            <option value="Transportation">Transportation</option>
+            <option value="Groceries">Groceries</option>
+            <option value="Utilities & Bills">Utilities & Bills</option>
+            <option value="Entertainment">Entertainment</option>
+            <option value="Investment">Investment</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" id="cancel-edit-btn" class="btn btn-secondary">Cancel</button>
+          <button type="submit" class="btn">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- In-page Budget Edit Modal -->
+  <div id="budget-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <h2>Set Monthly Budget Goal</h2>
+      <form id="budget-form">
+        <div class="form-group">
+          <label for="budget-goal-input">Monthly Budget Limit (in main currency)</label>
+          <input type="number" id="budget-goal-input" step="100" min="1" required>
+        </div>
+        <div class="modal-actions">
+          <button type="button" id="cancel-budget-btn" class="btn btn-secondary">Cancel</button>
+          <button type="submit" class="btn">Save Budget</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- In-page Clear Confirmation Modal -->
+  <div id="clear-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <h2>Clear All Expenses?</h2>
+      <p>Are you sure you want to delete all recorded expenses? This action cannot be undone.</p>
+      <div class="modal-actions">
+        <button type="button" id="cancel-clear-btn" class="btn btn-secondary">Cancel</button>
+        <button type="button" id="confirm-clear-btn" class="btn btn-danger">Yes, Clear All</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "my_expense_tracker_data";
+    const BUDGET_STORAGE_KEY = "my_expense_tracker_budget";
+    const THEME_STORAGE_KEY = "my_expense_tracker_theme";
+
+    const currencySymbols = { USD: "$", INR: "₹", EUR: "€", GBP: "£", Other: "" };
+
+    const categoryColors = {
+      "Food & Dining": "#f59e0b",
+      "Transportation": "#3b82f6",
+      "Groceries": "#10b981",
+      "Utilities & Bills": "#8b5cf6",
+      "Entertainment": "#ec4899",
+      "Investment": "#06b6d4",
+      "Other": "#6b7280"
+    };
+
+    function getTodayString() {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, "0");
+      const day = String(today.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    const defaultExpenses = [
+      { id: 1, desc: "Morning Latte", amount: 150.00, currency: "INR", date: getTodayString(), category: "Food & Dining" },
+      { id: 2, desc: "Metro Card Reload", amount: 500.00, currency: "INR", date: getTodayString(), category: "Transportation" },
+      { id: 3, desc: "Weekly Groceries", amount: 850.00, currency: "INR", date: getTodayString(), category: "Groceries" }
+    ];
+
+    function loadSavedExpenses() {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) return parsed;
+        }
+      } catch (err) {
+        console.warn("Could not read from localStorage:", err);
+      }
+      return defaultExpenses;
+    }
+
+    function saveExpenses() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
+      } catch (err) {
+        console.warn("Could not write to localStorage:", err);
+      }
+    }
+
+    function loadSavedBudget() {
+      try {
+        const saved = localStorage.getItem(BUDGET_STORAGE_KEY);
+        if (saved) {
+          const val = parseFloat(saved);
+          if (!isNaN(val) && val > 0) return val;
+        }
+      } catch (e) {}
+      return 20000;
+    }
+
+    function saveBudget(val) {
+      try {
+        localStorage.setItem(BUDGET_STORAGE_KEY, val.toString());
+      } catch (e) {}
+    }
+
+    let expenses = loadSavedExpenses();
+    let monthlyBudgetGoal = loadSavedBudget();
+
+    const expenseForm = document.getElementById("expense-form");
+    const descInput = document.getElementById("desc-input");
+    const amountInput = document.getElementById("amount-input");
+    const currencySelect = document.getElementById("currency-select");
+    const dateInput = document.getElementById("date-input");
+    const categorySelect = document.getElementById("category-select");
+    const filterSelect = document.getElementById("filter-select");
+    const periodFilter = document.getElementById("period-filter");
+    const customRangeRow = document.getElementById("custom-range-row");
+    const rangeFromInput = document.getElementById("range-from-input");
+    const rangeToInput = document.getElementById("range-to-input");
+    const searchInput = document.getElementById("search-input");
+    const expenseList = document.getElementById("expense-list");
+    const totalDisplay = document.getElementById("total-display");
+    const totalLabel = document.getElementById("total-label");
+
+    const breakdownBar = document.getElementById("breakdown-bar");
+    const breakdownLegend = document.getElementById("breakdown-legend");
+    const breakdownItemCount = document.getElementById("breakdown-item-count");
+
+    const budgetGoalDisplay = document.getElementById("budget-goal-display");
+    const budgetProgressBar = document.getElementById("budget-progress-bar");
+    const budgetSpentInfo = document.getElementById("budget-spent-info");
+    const budgetStatusTag = document.getElementById("budget-status-tag");
+    const editBudgetBtn = document.getElementById("edit-budget-btn");
+    const budgetModal = document.getElementById("budget-modal");
+    const budgetForm = document.getElementById("budget-form");
+    const budgetGoalInput = document.getElementById("budget-goal-input");
+    const cancelBudgetBtn = document.getElementById("cancel-budget-btn");
+
+    const themeToggleBtn = document.getElementById("theme-toggle-btn");
+    const themeIcon = document.getElementById("theme-icon");
+    const themeText = document.getElementById("theme-text");
+
+    const exportExcelBtn = document.getElementById("export-excel-btn");
+    const clearBtn = document.getElementById("clear-btn");
+
+    const editModal = document.getElementById("edit-modal");
+    const editForm = document.getElementById("edit-form");
+    const editIdInput = document.getElementById("edit-id");
+    const editDescInput = document.getElementById("edit-desc");
+    const editAmountInput = document.getElementById("edit-amount");
+    const editCurrencySelect = document.getElementById("edit-currency");
+    const editCategorySelect = document.getElementById("edit-category");
+    const cancelEditBtn = document.getElementById("cancel-edit-btn");
+
+    const clearModal = document.getElementById("clear-modal");
+    const cancelClearBtn = document.getElementById("cancel-clear-btn");
+    const confirmClearBtn = document.getElementById("confirm-clear-btn");
+
+    dateInput.value = getTodayString();
+    rangeFromInput.value = getTodayString();
+    rangeToInput.value = getTodayString();
+
+    function applyTheme(isDark) {
+      if (isDark) {
+        document.body.classList.add("dark-mode");
+        themeIcon.textContent = "☀️";
+        themeText.textContent = "Light";
+      } else {
+        document.body.classList.remove("dark-mode");
+        themeIcon.textContent = "🌙";
+        themeText.textContent = "Dark";
+      }
+    }
+
+    try {
+      if (localStorage.getItem(THEME_STORAGE_KEY) === "dark") applyTheme(true);
+    } catch (e) {}
+
+    themeToggleBtn.addEventListener("click", () => {
+      const isDark = document.body.classList.toggle("dark-mode");
+      themeIcon.textContent = isDark ? "☀️" : "🌙";
+      themeText.textContent = isDark ? "Light" : "Dark";
+      try {
+        localStorage.setItem(THEME_STORAGE_KEY, isDark ? "dark" : "light");
+      } catch (e) {}
+    });
+
+    function updateBudgetStatus() {
+      budgetGoalDisplay.textContent = `₹${monthlyBudgetGoal.toLocaleString()}`;
+
+      const currentMonthPrefix = getTodayString().slice(0, 7);
+      let currentMonthSpent = 0;
+
+      expenses.forEach((item) => {
+        if (item.date && item.date.startsWith(currentMonthPrefix)) {
+          currentMonthSpent += item.amount;
+        }
+      });
+
+      const pct = Math.min((currentMonthSpent / monthlyBudgetGoal) * 100, 100);
+      budgetProgressBar.style.width = `${pct}%`;
+      budgetSpentInfo.textContent = `₹${currentMonthSpent.toLocaleString()} spent this month`;
+
+      budgetStatusTag.className = "budget-status-tag";
+      if (currentMonthSpent > monthlyBudgetGoal) {
+        budgetProgressBar.style.backgroundColor = "#ef4444";
+        budgetStatusTag.classList.add("budget-status-danger");
+        budgetStatusTag.textContent = "Budget Exceeded!";
+      } else if (pct >= 80) {
+        budgetProgressBar.style.backgroundColor = "#f59e0b";
+        budgetStatusTag.classList.add("budget-status-warning");
+        budgetStatusTag.textContent = `Warning: ${pct.toFixed(0)}% Used`;
+      } else {
+        budgetProgressBar.style.backgroundColor = "#10b981";
+        budgetStatusTag.classList.add("budget-status-safe");
+        budgetStatusTag.textContent = "On Track";
+      }
+    }
+
+    editBudgetBtn.addEventListener("click", () => {
+      budgetGoalInput.value = monthlyBudgetGoal;
+      budgetModal.classList.remove("hidden");
+      budgetGoalInput.focus();
+    });
+
+    cancelBudgetBtn.addEventListener("click", () => budgetModal.classList.add("hidden"));
+    budgetModal.addEventListener("click", (e) => {
+      if (e.target === budgetModal) budgetModal.classList.add("hidden");
+    });
+
+    budgetForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const newGoal = parseFloat(budgetGoalInput.value);
+      if (!isNaN(newGoal) && newGoal > 0) {
+        monthlyBudgetGoal = newGoal;
+        saveBudget(newGoal);
+        updateBudgetStatus();
+      }
+      budgetModal.classList.add("hidden");
+    });
+
+    function updateTotalSpending(itemsToCount, selectedCategory, searchQuery, activePeriod) {
+      if (searchQuery) {
+        totalLabel.textContent = "Total Filtered Spending";
+      } else if (activePeriod !== "all") {
+        totalLabel.textContent = `Total Spending (${periodFilter.options[periodFilter.selectedIndex].text})`;
+      } else {
+        totalLabel.textContent = selectedCategory === "All" ? "Total Spending" : `Total Spending (${selectedCategory})`;
+      }
+
+      if (itemsToCount.length === 0) {
+        totalDisplay.textContent = "₹0.00";
+        return;
+      }
+
+      const totalsByCurrency = {};
+      itemsToCount.forEach((item) => {
+        const curr = item.currency;
+        totalsByCurrency[curr] = (totalsByCurrency[curr] || 0) + item.amount;
+      });
+
+      const formattedTotals = Object.entries(totalsByCurrency).map(([curr, sum]) => {
+        const symbol = currencySymbols[curr] || "";
+        return `${symbol}${sum.toFixed(2)}`;
+      });
+
+      totalDisplay.textContent = formattedTotals.join(" • ");
+    }
+
+    function updateCategoryBreakdown(items) {
+      breakdownBar.innerHTML = "";
+      breakdownLegend.innerHTML = "";
+
+      if (items.length === 0) {
+        breakdownItemCount.textContent = "0 items";
+        breakdownBar.innerHTML = '<div style="width: 100%; height: 100%; background: #e5e7eb;"></div>';
+        breakdownLegend.innerHTML = '<span style="font-size: 0.78rem; color: #9ca3af;">No expenses in this view</span>';
+        return;
+      }
+
+      breakdownItemCount.textContent = `${items.length} item${items.length === 1 ? "" : "s"}`;
+
+      const categoryTotals = {};
+      let overallTotal = 0;
+
+      items.forEach((item) => {
+        categoryTotals[item.category] = (categoryTotals[item.category] || 0) + item.amount;
+        overallTotal += item.amount;
+      });
+
+      if (overallTotal === 0) return;
+
+      const sortedCategories = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]);
+
+      sortedCategories.forEach(([cat, amount]) => {
+        const percentage = ((amount / overallTotal) * 100).toFixed(1);
+        const color = categoryColors[cat] || "#6b7280";
+
+        const segment = document.createElement("div");
+        segment.className = "breakdown-segment";
+        segment.style.width = `${percentage}%`;
+        segment.style.backgroundColor = color;
+        segment.title = `${cat}: ${percentage}%`;
+        breakdownBar.appendChild(segment);
+
+        const legend = document.createElement("div");
+        legend.className = "legend-item";
+        legend.innerHTML = `
+          <span class="legend-dot" style="background-color: ${color};"></span>
+          <span>${cat}</span>
+          <span class="legend-pct">${percentage}%</span>
+        `;
+        breakdownLegend.appendChild(legend);
+      });
+    }
+
+    function deleteExpense(id) {
+      expenses = expenses.filter((item) => item.id !== id);
+      saveExpenses();
+      renderExpenses();
+    }
+
+    function openEditModal(item) {
+      editIdInput.value = item.id;
+      editDescInput.value = item.desc;
+      editAmountInput.value = item.amount;
+      editCurrencySelect.value = item.currency;
+      editCategorySelect.value = item.category;
+      editModal.classList.remove("hidden");
+      editDescInput.focus();
+    }
+
+    function closeEditModal() {
+      editModal.classList.add("hidden");
+    }
+
+    function renderExpenses() {
+      expenseList.innerHTML = "";
+      const selectedCategory = filterSelect.value;
+      const selectedPeriod = periodFilter.value;
+      const searchQuery = searchInput.value.trim().toLowerCase();
+
+      const today = new Date();
+      const currentMonthPrefix = getTodayString().slice(0, 7);
+
+      const visibleExpenses = expenses.filter((item) => {
+        if (selectedPeriod === "this-month") {
+          if (!item.date || !item.date.startsWith(currentMonthPrefix)) return false;
+        } else if (selectedPeriod === "this-week") {
+          const itemDate = new Date(item.date);
+          const diffDays = (today - itemDate) / (1000 * 60 * 60 * 24);
+          if (diffDays < 0 || diffDays > 7) return false;
+        } else if (selectedPeriod === "custom") {
+          const from = rangeFromInput.value;
+          const to = rangeToInput.value;
+          if (from && item.date < from) return false;
+          if (to && item.date > to) return false;
+        }
+
+        const matchesCategory = selectedCategory === "All" || item.category === selectedCategory;
+        if (!matchesCategory) return false;
+
+        if (!searchQuery) return true;
+
+        const symbol = currencySymbols[item.currency] || "";
+        const descMatch = item.desc.toLowerCase().includes(searchQuery);
+        const amountMatch = item.amount.toString().includes(searchQuery);
+        const categoryMatch = item.category.toLowerCase().includes(searchQuery);
+        const currencyMatch = item.currency.toLowerCase().includes(searchQuery) || symbol.includes(searchQuery);
+        const dateMatch = item.date.toLowerCase().includes(searchQuery);
+
+        return descMatch || amountMatch || categoryMatch || currencyMatch || dateMatch;
+      });
+
+      if (visibleExpenses.length === 0) {
+        let message = "No expenses recorded yet.";
+        if (searchQuery) {
+          message = `No expenses match "${searchQuery}".`;
+        } else if (selectedCategory !== "All" || selectedPeriod !== "all") {
+          message = "No expenses match the selected filters.";
+        }
+
+        expenseList.innerHTML = `<li class="empty-state">${message}</li>`;
+        updateTotalSpending([], selectedCategory, searchQuery, selectedPeriod);
+        updateCategoryBreakdown([]);
+        updateBudgetStatus();
+        return;
+      }
+
+      visibleExpenses.forEach((item) => {
+        const symbol = currencySymbols[item.currency] || "";
+        const li = document.createElement("li");
+        li.className = "expense-item";
+        li.innerHTML = `
+          <div class="expense-info">
+            <span class="expense-name">${item.desc}</span>
+            <div class="expense-meta">
+              <span class="expense-category">${item.category}</span>
+              <span class="expense-date">${item.date}</span>
+            </div>
+          </div>
+          <div class="expense-right">
+            <span class="expense-amount">${symbol}${item.amount.toFixed(2)}</span>
+            <div class="expense-actions">
+              <button type="button" class="edit-btn">Edit</button>
+              <button type="button" class="delete-btn">Delete</button>
+            </div>
+          </div>
+        `;
+
+        li.querySelector(".edit-btn").addEventListener("click", () => openEditModal(item));
+        li.querySelector(".delete-btn").addEventListener("click", () => deleteExpense(item.id));
+        expenseList.appendChild(li);
+      });
+
+      updateTotalSpending(visibleExpenses, selectedCategory, searchQuery, selectedPeriod);
+      updateCategoryBreakdown(visibleExpenses);
+      updateBudgetStatus();
+    }
+
+    periodFilter.addEventListener("change", () => {
+      if (periodFilter.value === "custom") {
+        customRangeRow.classList.remove("hidden");
+      } else {
+        customRangeRow.classList.add("hidden");
+      }
+      renderExpenses();
+    });
+
+    rangeFromInput.addEventListener("change", renderExpenses);
+    rangeToInput.addEventListener("change", renderExpenses);
+    filterSelect.addEventListener("change", renderExpenses);
+    searchInput.addEventListener("input", renderExpenses);
+
+    editForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      const id = Number(editIdInput.value);
+      const updatedDesc = editDescInput.value.trim();
+      const updatedAmount = parseFloat(editAmountInput.value);
+      const updatedCurrency = editCurrencySelect.value;
+      const updatedCategory = editCategorySelect.value;
+
+      if (!updatedDesc || isNaN(updatedAmount) || updatedAmount <= 0) return;
+
+      const target = expenses.find((item) => item.id === id);
+      if (target) {
+        target.desc = updatedDesc;
+        target.amount = updatedAmount;
+        target.currency = updatedCurrency;
+        target.category = updatedCategory;
+
+        saveExpenses();
+        renderExpenses();
+      }
+
+      closeEditModal();
+    });
+
+    cancelEditBtn.addEventListener("click", closeEditModal);
+    editModal.addEventListener("click", (e) => {
+      if (e.target === editModal) closeEditModal();
+    });
+
+    exportExcelBtn.addEventListener("click", () => {
+      if (expenses.length === 0) return;
+
+      let tableHtml = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+          <meta charset="utf-8">
+          <!--[if gte mso 9]>
+          <xml>
+            <x:ExcelWorkbook>
+              <x:ExcelWorksheets>
+                <x:ExcelWorksheet>
+                  <x:Name>Expenses</x:Name>
+                  <x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
+                </x:ExcelWorksheet>
+              </x:ExcelWorksheets>
+            </x:ExcelWorkbook>
+          </xml>
+          <![endif]-->
+          <style>
+            th { font-family: Arial, sans-serif; font-size: 11pt; font-weight: bold; background-color: #d1d5db; border: 1px solid #9ca3af; padding: 8px 12px; }
+            td { font-family: Arial, sans-serif; font-size: 10pt; border: 1px solid #e5e7eb; padding: 6px 12px; }
+          </style>
+        </head>
+        <body>
+          <table>
+            <thead>
+              <tr>
+                <th style="font-weight: bold; text-align: left;">Description</th>
+                <th style="font-weight: bold; text-align: right;">Amount</th>
+                <th style="font-weight: bold; text-align: center;">Currency</th>
+                <th style="font-weight: bold; text-align: left;">Category</th>
+                <th style="font-weight: bold; text-align: center;">Date</th>
+              </tr>
+            </thead>
+            <tbody>
+      `;
+
+      expenses.forEach((item) => {
+        tableHtml += `
+          <tr>
+            <td style="text-align: left;">${item.desc}</td>
+            <td style="text-align: right;">${item.amount.toFixed(2)}</td>
+            <td style="text-align: center;">${item.currency}</td>
+            <td style="text-align: left;">${item.category}</td>
+            <td style="text-align: center;">${item.date}</td>
+          </tr>
+        `;
+      });
+
+      tableHtml += `
+            </tbody>
+          </table>
+        </body>
+        </html>
+      `;
+
+      const blob = new Blob([tableHtml], { type: "application/vnd.ms-excel;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `expenses_${getTodayString()}.xls`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    });
+
+    clearBtn.addEventListener("click", () => {
+      if (expenses.length > 0) clearModal.classList.remove("hidden");
+    });
+
+    cancelClearBtn.addEventListener("click", () => clearModal.classList.add("hidden"));
+    clearModal.addEventListener("click", (e) => {
+      if (e.target === clearModal) clearModal.classList.add("hidden");
+    });
+
+    confirmClearBtn.addEventListener("click", () => {
+      expenses = [];
+      saveExpenses();
+      renderExpenses();
+      clearModal.classList.add("hidden");
+    });
+
+    expenseForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      const desc = descInput.value.trim();
+      const amount = parseFloat(amountInput.value);
+      const currency = currencySelect.value;
+      const date = dateInput.value || getTodayString();
+      const category = categorySelect.value;
+
+      if (!desc || isNaN(amount) || amount <= 0) return;
+
+      const newExpense = { id: Date.now(), desc, amount, currency, date, category };
+
+      expenses.unshift(newExpense);
+      saveExpenses();
+      renderExpenses();
+
+      descInput.value = "";
+      amountInput.value = "";
+      dateInput.value = getTodayString();
+      descInput.focus();
+    });
+
+    renderExpenses();
+  </script>
+</body>
+</html>
